@@ -1,0 +1,25 @@
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dofus_decoder_dev
+    username: dofus
+    password: devpassword
+
+logging:
+  level:
+    root: DEBUG
+    com.dofus: TRACE
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+dofus:
+  game:
+    packet-logging: true
+  network:
+    proxy:
+      enabled: true

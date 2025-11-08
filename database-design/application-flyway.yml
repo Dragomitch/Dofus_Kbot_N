@@ -1,0 +1,156 @@
+# ============================================================================
+# Flyway Configuration for Dofus Retro Packet Decoder
+# ============================================================================
+# Description: Spring Boot Flyway configuration for database migrations
+# Author: Agent A2 - Database Architect
+# Date: 2025-11-08
+# ============================================================================
+
+spring:
+  flyway:
+    # Enable Flyway migrations
+    enabled: true
+
+    # Location of migration scripts
+    # Classpath location where SQL migration files are stored
+    locations: classpath:db/migration
+
+    # Baseline configuration
+    # If database already exists, baseline it before running migrations
+    baseline-on-migrate: true
+    baseline-version: 0
+    baseline-description: "Baseline for existing database"
+
+    # Validation
+    # Validate migrations against applied migrations on startup
+    validate-on-migrate: true
+
+    # Clean (DANGEROUS - use only in dev)
+    # DO NOT enable in production! This will drop all objects in the schema
+    clean-disabled: true
+    clean-on-validation-error: false
+
+    # Migration execution
+    # Out of order migrations allow running older migrations after newer ones
+    out-of-order: false
+
+    # Placeholder configuration
+    # Use placeholders in SQL files: ${placeholder_name}
+    placeholder-replacement: true
+    placeholders:
+      # Example placeholders (can be overridden per environment)
+      database_name: dofus_decoder
+      schema_name: public
+
+    # Table name for Flyway metadata
+    # Default is flyway_schema_history
+    table: flyway_schema_history
+
+    # SQL migration settings
+    sql-migration-prefix: V
+    sql-migration-separator: __
+    sql-migration-suffixes: .sql
+
+    # Encoding
+    encoding: UTF-8
+
+    # Connection settings
+    # Number of retries when Flyway connects to the database
+    connect-retries: 3
+
+    # Lock retry configuration
+    lock-retry-count: 50
+
+# ============================================================================
+# ENVIRONMENT-SPECIFIC CONFIGURATIONS
+# ============================================================================
+
+---
+# Development environment
+spring:
+  config:
+    activate:
+      on-profile: dev
+  flyway:
+    # Allow clean in development
+    clean-disabled: false
+    # Create schemas if they don't exist
+    create-schemas: true
+    # More verbose output
+    # (Note: Flyway logging is controlled by Spring Boot logging config)
+
+---
+# Test environment
+spring:
+  config:
+    activate:
+      on-profile: test
+  flyway:
+    # Clean database before each test run
+    clean-disabled: false
+    clean-on-validation-error: true
+    create-schemas: true
+
+---
+# Production environment
+spring:
+  config:
+    activate:
+      on-profile: prod
+  flyway:
+    # Strict settings for production
+    clean-disabled: true
+    clean-on-validation-error: false
+    validate-on-migrate: true
+    out-of-order: false
+    # Do not create schemas automatically in production
+    create-schemas: false
+
+# ============================================================================
+# USAGE NOTES
+# ============================================================================
+#
+# 1. Migration File Naming Convention:
+#    V{version}__{description}.sql
+#    Example: V1__initial_schema.sql
+#
+# 2. Migration Execution Order:
+#    Migrations are executed in version order (V1, V2, V3, etc.)
+#
+# 3. Baseline:
+#    If you have an existing database, run:
+#    mvn flyway:baseline
+#    Then future migrations will be applied on top
+#
+# 4. Repair:
+#    If a migration fails, fix it and run:
+#    mvn flyway:repair
+#    Then retry with:
+#    mvn flyway:migrate
+#
+# 5. Info:
+#    To see migration status:
+#    mvn flyway:info
+#
+# 6. Validate:
+#    To validate applied migrations:
+#    mvn flyway:validate
+#
+# 7. Clean (DEV ONLY):
+#    To drop all objects:
+#    mvn flyway:clean
+#
+# ============================================================================
+# MIGRATION CHECKLIST
+# ============================================================================
+#
+# Before creating a new migration:
+# ☑ Version number is sequential
+# ☑ Description is clear and concise
+# ☑ SQL is idempotent where possible (use IF NOT EXISTS)
+# ☑ Migration is tested in dev environment
+# ☑ Rollback plan is documented
+# ☑ Performance impact is assessed (for large tables)
+# ☑ Downtime requirements are documented
+#
+# ============================================================================

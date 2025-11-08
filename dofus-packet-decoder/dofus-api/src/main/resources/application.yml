@@ -1,0 +1,158 @@
+spring:
+  application:
+    name: dofus-packet-decoder
+  profiles:
+    active: dev
+
+  # JPA / Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  # Database
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dofus_decoder
+    username: dofus
+    password: changeme
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # Flyway
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+
+  # Cache
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000 # 10 minutes
+
+# Server
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Management / Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.dofus: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/dofus-packet-decoder.log
+    max-size: 10MB
+    max-history: 30
+
+# SpringDoc / OpenAPI
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  show-actuator: true
+
+# Dofus Application Configuration
+dofus:
+  network:
+    proxy:
+      enabled: true
+      port: 5555
+      target-host: 34.251.172.139
+      target-port: 443
+    capture:
+      buffer-size: 8192
+      max-connections: 100
+      timeout-seconds: 30
+
+  protocol:
+    version: 1.30.0
+    encryption:
+      enabled: false
+      algorithm: XOR
+      key: "default-key"
+
+  game:
+    auto-reconnect: true
+    packet-logging: true
+    state-persistence: true
+    max-packet-history: 10000
+
+  combat:
+    strategy: BALANCED  # AGGRESSIVE, DEFENSIVE, BALANCED
+    turn-timeout-seconds: 45
+    auto-pass-turn: false
+    spell-priorities:
+      - id: 101
+        priority: 1
+        min-range: 1
+        max-range: 10
+      - id: 102
+        priority: 2
+        min-range: 1
+        max-range: 5
+
+  navigation:
+    algorithm: A_STAR  # A_STAR, DIJKSTRA
+    max-path-length: 50
+    avoid-aggressive-mobs: true
+    recalculate-on-obstacle: true
+
+  persistence:
+    packet-retention-days: 7
+    combat-session-retention-days: 30
+    cleanup-enabled: true
+    cleanup-schedule: "0 0 3 * * ?" # Daily at 3 AM

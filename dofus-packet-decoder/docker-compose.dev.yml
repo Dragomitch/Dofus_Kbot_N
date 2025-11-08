@@ -1,0 +1,42 @@
+version: '3.8'
+
+# Development override for docker-compose
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build  # Use build stage for hot reload
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+      PACKET_LOGGING: "true"
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    volumes:
+      # Mount source code for hot reload (if using devtools)
+      - ./dofus-api/src:/app/dofus-api/src
+      - ./dofus-api/target:/app/dofus-api/target
+      - app_logs:/app/logs
+    ports:
+      - "8080:8080"
+      - "5555:5555"
+      - "5005:5005"  # Debug port
+    command: >
+      java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      -jar app.jar
+
+  postgres:
+    environment:
+      POSTGRES_DB: dofus_decoder_dev
+    ports:
+      - "5432:5432"
+
+  # Auto-start tools in dev mode
+  pgadmin:
+    profiles: []  # Empty profile = always start
+
+  redis-commander:
+    profiles: []  # Empty profile = always start

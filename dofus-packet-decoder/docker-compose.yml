@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: dofus-postgres
+    environment:
+      POSTGRES_DB: dofus_decoder
+      POSTGRES_USER: dofus
+      POSTGRES_PASSWORD: changeme
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - dofus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dofus -d dofus_decoder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dofus-redis
+    command: redis-server --appendonly yes --requirepass changeme
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - dofus-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Dofus Packet Decoder Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dofus-app
+    ports:
+      - "8080:8080"
+      - "5555:5555"  # Proxy port
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dofus_decoder
+      SPRING_DATASOURCE_USERNAME: dofus
+      SPRING_DATASOURCE_PASSWORD: changeme
+
+      # Redis Configuration
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: changeme
+
+      # JPA Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
+      # Flyway
+      SPRING_FLYWAY_ENABLED: true
+
+      # Application Configuration
+      PROXY_ENABLED: "true"
+      PROXY_PORT: 5555
+      PACKET_LOGGING: "true"
+
+      # JVM Options
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - dofus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # pgAdmin (Optional - for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dofus-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@dofus.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - dofus-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles:
+      - tools
+
+  # Redis Commander (Optional - for Redis management)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: dofus-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:changeme
+    ports:
+      - "8081:8081"
+    networks:
+      - dofus-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  dofus-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
