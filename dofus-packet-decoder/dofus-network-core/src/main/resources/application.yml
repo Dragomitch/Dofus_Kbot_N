@@ -1,0 +1,32 @@
+# Dofus Network Core Configuration
+# Network layer configuration for MITM proxy and packet capture
+
+dofus:
+  network:
+    proxy:
+      # Enable/disable the proxy server
+      enabled: true
+
+      # Port for the proxy server to listen on
+      # Dofus client should connect to localhost:5555
+      port: 5555
+
+      # Target Dofus server address
+      # This is the actual Dofus Retro server
+      target-host: 34.251.172.139
+      target-port: 443
+
+    capture:
+      # Queue size for captured packets (max buffered packets)
+      queue-size: 10000
+
+      # Enable/disable packet capture
+      enabled: true
+
+# Logging configuration
+logging:
+  level:
+    com.dofus.network: DEBUG
+    io.netty: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
